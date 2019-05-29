@@ -1,0 +1,39 @@
+{
+    "name":"cfrottentomatoes",
+    "slug":"cfrottentomatoes",
+    "version":"0.5.0",
+    "author":"Jordan Clark <jordanclark@gmail.com>",
+    "keywords":[
+        "rottentomatoes",
+        "rotten tomatoes",
+        "movies",
+        "api",
+        "rest"
+    ],
+    "shortDescription":"API client for RottenTomatoes.com",
+    "type":"modules",
+    "location":"jordanclark/cfrottentomatoes#v0.5.0",
+    "repository":{
+        "URL":"https://github.com/jordanclark/cfrottentomatoes.git",
+        "type":"GIT"
+    },
+    "homepage":"https://github.com/jordanclark/cfrottentomatoes",
+    "bugs":"https://github.com/jordanclark/cfrottentomatoes/issues",
+    "license":[
+        {
+            "type":"Apache-2.0",
+            "URL":"https://github.com/jordanclark/cfrottentomatoes/blob/master/LICENSE"
+        }
+    ],
+    "private":false,
+    "ignore":[
+        "**/.*",
+        "/test/",
+        "/tests/"
+    ],
+    "scripts":{
+        "postVersion":"package set location='jordanclark/cfrottentomatoes#v`package version`'",
+        "onRelease":"publish",
+        "postPublish":"!git push --follow-tags"
+    }
+}
