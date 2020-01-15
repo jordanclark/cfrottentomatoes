@@ -31,7 +31,6 @@ component {
 
 	struct function apiRequest( required string path ) {
 		var http = {};
-		var dataKeys = 0;
 		var item = "";
 		var out = {
 			success = false
@@ -55,7 +54,7 @@ component {
 				sleep( out.delay );
 			}
 		}
-		cftimer( type="debug", label="tomatoe request" ) {
+		cftimer( type="debug", label="tomatoe request " & out.requestUrl ) {
 			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
@@ -95,9 +94,8 @@ component {
 		return out;
 	}
 
-	struct function httpRequest( required string url ) {
+	struct function httpRequest( required string url, boolean parse= true ) {
 		var http = {};
-		var dataKeys = 0;
 		var item = "";
 		var out = {
 			success = false
@@ -108,7 +106,9 @@ component {
 		,	requestUrl = arguments.url
 		,	delay= 0
 		};
+		var p = arguments.parse;
 		structDelete( arguments, "url" );
+		structDelete( arguments, "parse" );
 		out.requestUrl &= this.structToQueryString( arguments );
 		this.debugLog( out.requestUrl );
 		// this.debugLog( out );
@@ -140,7 +140,7 @@ component {
 			out.success = true;
 		}
 		// parse response 
-		if ( len( out.response ) ) {
+		if ( len( out.response ) && p ) {
 			try {
 				out.json = deserializeJSON( out.response );
 				if ( isStruct( out.json ) && structKeyExists( out.json, "status" ) && out.json.status == "error" ) {
@@ -160,6 +160,23 @@ component {
 		return out;
 	}
 
+	struct function moviePage( required string slug ) {
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com" & arguments.slug
+		,	parse= false
+		);
+		return out;
+	}
+
+	struct function moviePageID( required string slug ) {
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com" & arguments.slug
+		,	parse= false
+		);
+		return val( reReplaceNoCase( out.response, '.+field[rtid]":"([^"]+)".+', '\1' ) );
+		// return val( reReplaceNoCase( out.response, '.+data-movie-id="([^"]+)".+', '\1' ) );
+	}
+
 	struct function movie( required numeric id ) {
 		var out = this.httpRequest(
 			url= "https://www.rottentomatoes.com/api/private/v1.0/movies/#numberFormat( arguments.id, '00' )#"
@@ -175,14 +192,30 @@ component {
 		return out;
 	}
 
+	struct function searchAlt( required string query, string type, numeric offset= 0, numeric limit= 5 ) {
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com/napi/search/"
+		,	argumentCollection= arguments
+		);
+		return out;
+	}
+	struct function movieSearch( required string query, numeric offset= 0, numeric limit= 30 ) {
+		return this.searchAlt( type= "movie", argumentCollection= arguments );
+	}
+	struct function tvSearch( required string query, numeric offset= 0, numeric limit= 30 ) {
+		return this.searchAlt( type= "tvSeries", argumentCollection= arguments );
+	}
+	struct function franchiseSearch( required string query, numeric offset= 0, numeric limit= 30 ) {
+		return this.searchAlt( type= "franchise", argumentCollection= arguments );
+	}
+	struct function actorSearch( required string query, numeric offset= 0, numeric limit= 30 ) {
+		return this.searchAlt( type= "actor", argumentCollection= arguments );
+	}
+
 	// https://www.rottentomatoes.com/api/private/v2.0/browse?dvd-streaming-upcoming
 
 	// https://www.rottentomatoes.com/api/private/v2.0/search/default-list 
 
-	// https://www.rottentomatoes.com/napi/search/?limit=5&query=terminator
-	// https://www.rottentomatoes.com/napi/search/?query=terminator&type=movie&offset=0&limit=30
-	// https://www.rottentomatoes.com/napi/search/?query=terminator&type=tvSeries&offset=0&limit=30
-	// https://www.rottentomatoes.com/napi/search/?query=terminator&type=franchise&offset=0&limit=30
 
 	// type=dvd-streaming-upcoming == Coming Soon
 	// type=cf-dvd-streaming-all == Certified Fresh Movies
@@ -284,7 +317,7 @@ component {
 		for ( sItem in stInput ) {
 			if ( !len( lExclude ) || !listFindNoCase( lExclude, sItem, sDelims ) ) {
 				try {
-					sValue = stInput[ sItem ];
+					sValue = stInput[ sItem ] ?: "";
 					if ( len( sValue ) ) {
 						if ( bEncode ) {
 							sOutput &= amp & lCase( sItem ) & "=" & urlEncodedFormat( sValue );
