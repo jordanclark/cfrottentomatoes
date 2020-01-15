@@ -11,6 +11,7 @@ component {
 		this.apiUrl = arguments.apiUrl;
 		this.httpTimeOut = arguments.httpTimeOut;
 		this.throttle = arguments.throttle;
+		this.userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36";
 		this.lastRequest= server.rt_lastRequest ?: 0;
 		return this;
 	}
@@ -55,7 +56,7 @@ component {
 			}
 		}
 		cftimer( type="debug", label="tomatoe request " & out.requestUrl ) {
-			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut );
+			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut, userAgent= this.userAgent );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
 				server.rt_lastRequest= this.lastRequest;
@@ -121,7 +122,7 @@ component {
 			}
 		}
 		cftimer( type="debug", label="tomatoe request " & out.requestUrl ) {
-			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut );
+			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut, userAgent= this.userAgent );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
 				server.rt_lastRequest= this.lastRequest;
