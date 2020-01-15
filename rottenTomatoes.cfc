@@ -120,7 +120,7 @@ component {
 				sleep( out.delay );
 			}
 		}
-		cftimer( type="debug", label="tomatoe request" ) {
+		cftimer( type="debug", label="tomatoe request " & out.requestUrl ) {
 			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
