@@ -1,4 +1,5 @@
 component {
+	cfprocessingdirective( preserveCase=true );
 
 	function init(
 		required string apiKey
@@ -58,7 +59,7 @@ component {
 			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
-				server.lastfm_lastRequest= this.lastRequest;
+				server.rt_lastRequest= this.lastRequest;
 			}
 		}
 		out.response = toString( http.fileContent );
@@ -91,6 +92,149 @@ component {
 		if ( len( out.error ) ) {
 			out.success = false;
 		}
+		return out;
+	}
+
+	struct function httpRequest( required string url ) {
+		var http = {};
+		var dataKeys = 0;
+		var item = "";
+		var out = {
+			success = false
+		,	error = ""
+		,	status = ""
+		,	statusCode = 0
+		,	response = ""
+		,	requestUrl = arguments.url
+		,	delay= 0
+		};
+		structDelete( arguments, "url" );
+		out.requestUrl &= this.structToQueryString( arguments );
+		this.debugLog( out.requestUrl );
+		// this.debugLog( out );
+		// throttle requests by sleeping the thread to prevent overloading api
+		if ( this.lastRequest > 0 && this.throttle > 0 ) {
+			out.delay = this.throttle - ( getTickCount() - this.lastRequest );
+			if ( out.delay > 0 ) {
+				this.debugLog( "Pausing for #out.delay#/ms" );
+				sleep( out.delay );
+			}
+		}
+		cftimer( type="debug", label="tomatoe request" ) {
+			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut );
+			if ( this.throttle > 0 ) {
+				this.lastRequest= getTickCount();
+				server.rt_lastRequest= this.lastRequest;
+			}
+		}
+		out.response = toString( http.fileContent );
+		// this.debugLog( http );
+		// this.debugLog( out.response );
+		out.statusCode = http.responseHeader.Status_Code ?: 500;
+		this.debugLog( out.statusCode );
+		if ( left( out.statusCode, 1 ) == 4 || left( out.statusCode, 1 ) == 5 ) {
+			out.error = "status code error: #out.statusCode#";
+		} else if ( out.response == "Connection Timeout" || out.response == "Connection Failure" ) {
+			out.error = out.response;
+		} else if ( left( out.statusCode, 1 ) == 2 ) {
+			out.success = true;
+		}
+		// parse response 
+		if ( len( out.response ) ) {
+			try {
+				out.json = deserializeJSON( out.response );
+				if ( isStruct( out.json ) && structKeyExists( out.json, "status" ) && out.json.status == "error" ) {
+					out.success = false;
+					out.error = out.json.message;
+				}
+				if ( structCount( out.json ) == 1 ) {
+					out.json = out.json[ structKeyList( out.json ) ];
+				}
+			} catch (any cfcatch) {
+				out.error= "JSON Error: " & (cfcatch.message?:"No catch message") & " " & (cfcatch.detail?:"No catch detail");
+			}
+		}
+		if ( len( out.error ) ) {
+			out.success = false;
+		}
+		return out;
+	}
+
+	struct function movie( required numeric id ) {
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com/api/private/v1.0/movies/#numberFormat( arguments.id, '00' )#"
+		);
+		// https://api.flixster.com/android/api/v2/movies/#arguments.id#.json
+		return out;
+	}
+
+	struct function movieAlt( required numeric id ) {
+		var out = this.httpRequest(
+			url= "https://api.flixster.com/android/api/v2/movies/#arguments.id#.json"
+		);
+		return out;
+	}
+
+	// https://www.rottentomatoes.com/api/private/v2.0/browse?dvd-streaming-upcoming
+
+	// https://www.rottentomatoes.com/api/private/v2.0/search/default-list 
+
+	// https://www.rottentomatoes.com/napi/search/?limit=5&query=terminator
+	// https://www.rottentomatoes.com/napi/search/?query=terminator&type=movie&offset=0&limit=30
+	// https://www.rottentomatoes.com/napi/search/?query=terminator&type=tvSeries&offset=0&limit=30
+	// https://www.rottentomatoes.com/napi/search/?query=terminator&type=franchise&offset=0&limit=30
+
+	// type=dvd-streaming-upcoming == Coming Soon
+	// type=cf-dvd-streaming-all == Certified Fresh Movies
+	// type=dvd-streaming-all == Browse All
+	// type=top-dvd-streaming == Top DVD & Streaming
+	// type=dvd-streaming-new == New Releases
+
+	
+	// type=cf-in-theaters == (theatre) Certified Fresh Movies
+	// type=opening == (threatre) Opening This Week
+	// type=in-theaters == (theatre) Top Box Office
+	// type=upcoming == (theatre) Coming Soon
+
+	// type=tv-list-1 = New TV Tonight
+	// type=tv-list-2 = Most Popular TV on RT
+	// type=tv-list-3 = Certified Fresh TV
+
+	// sortBy=tomato
+	// sortBy=release
+	// sortBy=popularity
+
+
+	struct function listDVD( numeric page= 1, numeric limit= 32 ) {
+		arguments.type= "dvd-streaming-all"
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com/api/private/v2.0/browse"
+		,	argumentCollection= arguments
+		);
+		return out;
+	}
+
+	struct function freshDVD( numeric page= 1, numeric limit= 32 ) {
+		arguments.type= "cf-dvd-streaming-all"
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com/api/private/v2.0/browse"
+		,	argumentCollection= arguments
+		);
+		return out;
+	}
+
+	struct function browse( numeric page= 1, string sortBy= "release" ) {
+		var args = {
+			"minTomato"= 70
+		,	"maxTomato"= 100
+		,	"sortBy"= arguments.sortBy
+		,	"type"= "cf-dvd-streaming-all"
+		,	"page"= arguments.page
+		};
+		var out = this.httpRequest(
+			url= "https://www.rottentomatoes.com/api/private/v2.0/browse"
+		,	argumentCollection= args
+		);
 		return out;
 	}
 
