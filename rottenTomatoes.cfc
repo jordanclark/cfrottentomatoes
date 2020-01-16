@@ -176,16 +176,21 @@ component {
 		);
 		out.movieID = 0;
 		//return reReplaceNoCase( out.response, '.+field[rtid]":"([^"]+)".+', '\1' );
-		out.first = find( 'field[rtid]":"', out.response ) + 14;
-		if( out.first > 1 ) {
-			out.end = find( '"', out.response, out.first );
-			out.movieID = mid( out.response, out.first, out.end-out.first );
-		} else {
-			// return reReplaceNoCase( out.response, '.+data-movie-id="([^"]+)".+', '\1' );
-			out.first = find( 'data-movie-id="', out.response ) + 15;
+		if( out.success ) {
+			out.first = find( 'field[rtid]":"', out.response ) + 14;
 			if( out.first > 1 ) {
 				out.end = find( '"', out.response, out.first );
 				out.movieID = mid( out.response, out.first, out.end-out.first );
+			} else {
+				// return reReplaceNoCase( out.response, '.+data-movie-id="([^"]+)".+', '\1' );
+				out.first = find( 'data-movie-id="', out.response ) + 15;
+				if( out.first > 1 ) {
+					out.end = find( '"', out.response, out.first );
+					out.movieID = mid( out.response, out.first, out.end-out.first );
+				} else {
+					out.error= "couldn't parse movie id";
+					out.success= false;
+				}
 			}
 		}
 		return out;
