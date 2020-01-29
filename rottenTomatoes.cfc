@@ -55,7 +55,7 @@ component {
 				sleep( out.delay );
 			}
 		}
-		cftimer( type="debug", label="tomatoe request " & out.requestUrl ) {
+		cftimer( type="debug", label="tomato request " & out.requestUrl ) {
 			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut, userAgent= this.userAgent );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
@@ -121,7 +121,7 @@ component {
 				sleep( out.delay );
 			}
 		}
-		cftimer( type="debug", label="tomatoe request " & out.requestUrl ) {
+		cftimer( type="debug", label="tomato request " & out.requestUrl ) {
 			cfhttp( result="http", method="GET", url=out.requestUrl, charset="UTF-8", throwOnError=false, timeOut=this.httpTimeOut, userAgent= this.userAgent );
 			if ( this.throttle > 0 ) {
 				this.lastRequest= getTickCount();
